@@ -1,22 +1,9 @@
+import csv
 import json
 import os
+from datetime import datetime
 
 from yt_dlp import YoutubeDL
-
-# Dictionary mapping dates to video IDs
-video_conseils_id = {
-    "06-02-2025": "5pDGa9xPHCI",
-    "05-12-2024": "V96S9AKLKRg",
-    "14-11-2024": "CiTpmUVJknw",
-    "03-10-2024": "X7wpBAIA00E",
-    "05-09-2024": "xOqlNB2QotU",
-    "20-06-2024": "ecAPSv_dUvo",
-    "13-06-2024": "6poMM7abcxo",
-    "02-05-2024": "bszn0dhE2L0",
-    "14-03-2024": "ypgOLGqsbsw",
-    "01-02-2024": "oBFVkTc9XNg",
-    "14-12-2023": "gIxTj562cZ0"
-}
 
 # Create descriptions directory if it doesn't exist
 os.makedirs('descriptions', exist_ok=True)
@@ -35,28 +22,36 @@ ydl_opts = {
 # Initialize youtube-dl
 ydl = YoutubeDL(ydl_opts)
 
-# Iterate over each video
-for date, video_id in video_conseils_id.items():
-    try:
-        # Get video info
-        url = f'https://www.youtube.com/watch?v={video_id}'
-        info = ydl.extract_info(url, download=False)
+# Read video IDs from CSV
+with open('data/youtube_videos_cc.csv', 'r', encoding='utf-8') as csvfile:
+    reader = csv.DictReader(csvfile)
+    for row in reader:
+        try:
+            # Convert date format from YYYY-MM-DD to DD-MM-YYYY
+            date_obj = datetime.strptime(row['date'], '%Y-%m-%d')
+            formatted_date = date_obj.strftime('%d-%m-%Y')
+            video_id = row['video_id']
 
-        # Extract relevant information
-        description_data = {
-            'title': info.get('title', ''),
-            'description': info.get('description', ''),
-            'upload_date': info.get('upload_date', ''),
-            'duration': info.get('duration', 0),
-            'view_count': info.get('view_count', 0),
-        }
+            # Get video info
+            url = f'https://www.youtube.com/watch?v={video_id}'
+            info = ydl.extract_info(url, download=False)
 
-        # Save to file
-        output_file = f'descriptions/description_cc_{date}.json'
-        with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(description_data, f, ensure_ascii=False, indent=2)
-        print(f"Successfully saved description for video {date} ({video_id})")
+            # Extract relevant information
+            description_data = {
+                'title': info.get('title', ''),
+                'description': info.get('description', ''),
+                'upload_date': info.get('upload_date', ''),
+                'duration': info.get('duration', 0),
+                'view_count': info.get('view_count', 0),
+            }
 
-    except Exception as e:
-        print(
-            f"Error getting description for video {date} ({video_id}): {str(e)}")
+            # Save to file
+            output_file = f'descriptions/description_cc_{formatted_date}.json'
+            with open(output_file, 'w', encoding='utf-8') as f:
+                json.dump(description_data, f, ensure_ascii=False, indent=2)
+            print(
+                f"Successfully saved description for video {formatted_date} ({video_id})")
+
+        except Exception as e:
+            print(
+                f"Error getting description for video {row['date']} ({row['video_id']}): {str(e)}")
